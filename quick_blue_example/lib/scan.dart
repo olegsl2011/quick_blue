@@ -69,7 +69,6 @@ class _ResultButtonCard extends StatelessWidget {
                       Text(e.rssi.toString()),
                     ].padded()),
                   ]),
-                  OutlinedButton(onPressed: () {}, child: Text("show details")),
                 ])));
   }
 }
