@@ -125,6 +125,17 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
 		  let mtu = peripheral.maximumWriteValueLength(for: .withoutResponse)
 		  print("peripheral.maximumWriteValueLengthForType:CBCharacteristicWriteWithoutResponse \(mtu)")
 		  messageConnector.sendMessage(["mtuConfig": mtu + GATT_HEADER_LENGTH])
+      case "readRssi":
+          let arguments = call.arguments as! Dictionary<String, Any>
+          let deviceId = arguments["deviceId"] as! String
+          guard let peripheral = discoveredPeripherals[deviceId] else {
+              result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
+              return
+          }
+          peripheral.readRSSI()
+          result(nil)
+	  case "requestLatency":
+          return
 	  case "readValue":
 		  let arguments = call.arguments as! Dictionary<String, Any>
 		  let deviceId = arguments["deviceId"] as! String
@@ -159,6 +170,19 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+}
+
+func latencyFromInt(_ latency: Int) -> CBPeripheralManagerConnectionLatency {
+  switch latency {
+  case 0:
+    return .low
+  case 1:
+    return .medium
+  case 2:
+    return .high
+  default:
+    return .low
   }
 }
 
@@ -228,6 +252,14 @@ extension SwiftQuickBluePlugin: CBPeripheralDelegate {
       peripheral.discoverCharacteristics(nil, for: service)
     }
   }
+    public func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: Error?) {
+      print("peripheral:didReadRSSI (\(RSSI))")
+      self.messageConnector.sendMessage([
+        "deviceId": peripheral.uuid.uuidString,
+        "type": "rssiValue",
+        "rssi": RSSI
+      ])
+    }
     
   public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
     for characteristic in service.characteristics! {

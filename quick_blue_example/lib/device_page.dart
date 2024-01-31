@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:quick_blue/quick_blue.dart';
+import 'package:quick_blue_example/components/interval_request_button.dart';
 import 'package:quick_blue_example/components/mtu_request_button.dart';
+import 'package:quick_blue_example/components/rssi_reader.dart';
 import 'package:quick_blue_example/components/service_display.dart';
 import 'package:quick_blue_example/extensions/widget.dart';
 
@@ -53,10 +55,7 @@ class _DevicePageState extends State<DevicePage> {
                                   _isConnected ? "disconnect" : "connect"))),
                       if (_isConnected)
                         SizedBox(
-                            height: 100,
-                            child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
+                            child: Wrap(
                                 children: [
                                   !_discoverServices
                                       ? OutlinedButton(
@@ -64,7 +63,11 @@ class _DevicePageState extends State<DevicePage> {
                                               () => _discoverServices = true),
                                           child: Text("discover services"))
                                       : Container(),
-                                  MtuRequestWidget(widget.deviceId),
+                                  ...[
+                                    IntervalRequestButton(widget.deviceId),
+                                    MtuRequestWidget(widget.deviceId),
+                                    RssiReader(widget.deviceId),
+                                  ],
                                 ].spacedWith(spacing: 20))),
                       if (_isConnected && _discoverServices)
                         ServiceDisplay(widget.deviceId),

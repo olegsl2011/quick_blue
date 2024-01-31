@@ -110,6 +110,8 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
       onValueChanged?.call(deviceId, characteristic, value);
     } else if (message['mtuConfig'] != null) {
       _mtuConfigController.add(message['mtuConfig']);
+    } else if (message['type'] == "rssiValue") {
+      onRssiRead?.call(message['deviceId'], message["rssi"]);
     }
   }
 
@@ -167,6 +169,10 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
     return await _mtuConfigController.stream.first;
   }
 
+  Future<void> readRssi(String deviceId) async {
+    await _method.invokeMethod('readRssi', {'deviceId': deviceId});
+  }
+
   @override
   void reinit() {
     if (Platform.isAndroid) {
@@ -175,11 +181,10 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
   }
 
   @override
-  void requestConnectionPriority(
-      String deviceId, BleConnectionPriority priority) {
-    _method.invokeMethod('requestConnectionPriority', {
+  void requestLatency(String deviceId, BlePackageLatency priority) {
+    _method.invokeMethod('requestLatency', {
       'deviceId': deviceId,
-      'priority': priority.value
+      'priority': priority.value,
     }).then((_) => _log("requestConnectionPriority invokeMethod success"));
   }
 }

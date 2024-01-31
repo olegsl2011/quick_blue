@@ -20,14 +20,8 @@ QuickBluePlatform get _instance {
   if (_manualDartRegistrationNeeded) {
     // Only do the initial registration if it hasn't already been overridden
     // with a non-default instance.
-    if (Platform.isAndroid ||
-        Platform.isIOS ||
-        Platform.isWindows ||
-        Platform.isMacOS) {
-      QuickBluePlatform.instance = MethodChannelQuickBlue();
-    } else if (Platform.isLinux) {
-      QuickBluePlatform.instance = QuickBlueLinux();
-    }
+    QuickBluePlatform.instance =
+        Platform.isLinux ? QuickBlueLinux() : MethodChannelQuickBlue();
     _manualDartRegistrationNeeded = false;
   }
 
@@ -53,10 +47,8 @@ class QuickBlue {
 
   static void stopScan() => _platform.stopScan();
 
-  static Stream<BlueScanResult> get scanResultStream {
-    return _platform.scanResultStream
-        .map((item) => BlueScanResult.fromMap(item));
-  }
+  static Stream<BlueScanResult> get scanResultStream =>
+      _platform.scanResultStream.map((item) => BlueScanResult.fromMap(item));
 
   static void connect(String deviceId, {bool? auto}) =>
       _platform.connect(deviceId, auto: auto);
@@ -71,6 +63,10 @@ class QuickBlue {
 
   static void setServiceHandler(OnServiceDiscovered? onServiceDiscovered) =>
       _platform.onServiceDiscovered = onServiceDiscovered;
+
+  static void setRssiHandler(OnRssiRead? onRssiRead) {
+    _platform.onRssiRead = onRssiRead;
+  }
 
   static Future<void> setNotifiable(String deviceId, String service,
       String characteristic, BleInputProperty bleInputProperty) {
@@ -100,6 +96,10 @@ class QuickBlue {
   static Future<int> requestMtu(String deviceId, int expectedMtu) =>
       _platform.requestMtu(deviceId, expectedMtu);
 
-  static void requestConnectionPriority(String deviceId, BleConnectionPriority priority) =>
-      _platform.requestConnectionPriority(deviceId, priority);
+  static Future<void> readRssi(String deviceId) => _platform.readRssi(deviceId);
+
+  /// set the interval between ble packages
+  /// The behaviour can vary from platfrom to platform
+  static void requestLatency(String deviceId, BlePackageLatency latency) =>
+      _platform.requestLatency(deviceId, latency);
 }

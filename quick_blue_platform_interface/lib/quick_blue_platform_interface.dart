@@ -15,9 +15,13 @@ typedef QuickLogger = Logger;
 typedef OnConnectionChanged = void Function(
     String deviceId, BlueConnectionState state);
 
-typedef OnServiceDiscovered = void Function(String deviceId, String serviceId, List<String> characteristicIds);
+typedef OnServiceDiscovered = void Function(
+    String deviceId, String serviceId, List<String> characteristicIds);
 
-typedef OnValueChanged = void Function(String deviceId, String characteristicId, Uint8List value);
+typedef OnRssiRead = void Function(String deviceId, int rssi);
+
+typedef OnValueChanged = void Function(
+    String deviceId, String characteristicId, Uint8List value);
 
 abstract class QuickBluePlatform extends PlatformInterface {
   QuickBluePlatform() : super(token: _token);
@@ -43,7 +47,7 @@ abstract class QuickBluePlatform extends PlatformInterface {
 
   void stopScan();
 
-  void requestConnectionPriority(String deviceId, BleConnectionPriority priority);
+  void requestLatency(String deviceId, BlePackageLatency priority);
 
   Stream<dynamic> get scanResultStream;
 
@@ -57,13 +61,24 @@ abstract class QuickBluePlatform extends PlatformInterface {
 
   OnServiceDiscovered? onServiceDiscovered;
 
-  Future<void> setNotifiable(String deviceId, String service, String characteristic, BleInputProperty bleInputProperty);
+  OnRssiRead? onRssiRead;
+
+  Future<void> setNotifiable(String deviceId, String service,
+      String characteristic, BleInputProperty bleInputProperty);
 
   OnValueChanged? onValueChanged;
 
-  Future<void> readValue(String deviceId, String service, String characteristic);
+  Future<void> readValue(
+      String deviceId, String service, String characteristic);
 
-  Future<void> writeValue(String deviceId, String service, String characteristic, Uint8List value, BleOutputProperty bleOutputProperty);
+  Future<void> writeValue(
+      String deviceId,
+      String service,
+      String characteristic,
+      Uint8List value,
+      BleOutputProperty bleOutputProperty);
+
+  Future<void> readRssi(String deviceId);
 
   Future<int> requestMtu(String deviceId, int expectedMtu);
 }
