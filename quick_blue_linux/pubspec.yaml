@@ -14,7 +14,7 @@ dependencies:
       url: https://github.com/MinkTec/quick_blue
       path: quick_blue_platform_interface
   bluez: ^0.8.1
-  collection: ^1.15.0
+  collection: ^1.18.0
   logging: ^1.2.0
 
 dev_dependencies:
