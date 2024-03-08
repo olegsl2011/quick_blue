@@ -1,13 +1,10 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quick_blue/quick_blue.dart';
 import 'package:quick_blue_example/components/data_display.dart';
-import 'package:quick_blue_example/extensions/widget.dart';
 
 typedef BleService = (String, List<String>);
 
