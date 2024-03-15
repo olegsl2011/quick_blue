@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:bluez/bluez.dart';
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
+import 'package:quick_blue_platform_interface/ble_events.dart';
 import 'package:quick_blue_platform_interface/quick_blue_platform_interface.dart';
 
 class QuickBlueLinux extends QuickBluePlatform {
@@ -204,6 +205,9 @@ class QuickBlueLinux extends QuickBluePlatform {
   void requestLatency(String deviceId, BlePackageLatency priority) {
     _log("request latency is not supported on linux");
   }
+
+  @override
+  Stream<BleEventMessage> get bleEventStream => throw UnimplementedError();
 }
 
 extension BlueZDeviceExtension on BlueZDevice {

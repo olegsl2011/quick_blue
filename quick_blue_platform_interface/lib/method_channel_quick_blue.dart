@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
+import 'package:quick_blue_platform_interface/ble_events.dart';
 
 import 'quick_blue_platform_interface.dart';
 
@@ -49,11 +49,13 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
         .then((_) => print('stopScan invokeMethod success'));
   }
 
-  Stream<dynamic> _scanResultStream =
+  Stream<dynamic> scanResultStream =
       _event_scanResult.receiveBroadcastStream({'name': 'scanResult'});
 
-  @override
-  Stream<dynamic> get scanResultStream => _scanResultStream;
+  StreamController<BleEventMessage> _eventMessageController =
+      StreamController.broadcast();
+
+  Stream<BleEventMessage> get bleEventStream => _eventMessageController.stream;
 
   @override
   Future<void> connect(String deviceId, {bool? auto}) {
@@ -114,6 +116,9 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
     } else if (message['type'] == "rssiValue") {
       onRssiRead?.call(message['deviceId'], message["rssi"]);
     }
+
+    _eventMessageController
+        .add(BleEvent.parse(message["type"]).package(message));
   }
 
   @override
