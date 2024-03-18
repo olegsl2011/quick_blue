@@ -113,7 +113,7 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
       onValueChanged?.call(deviceId, characteristic, value);
     } else if (message['mtuConfig'] != null) {
       _mtuConfigController.add(message['mtuConfig']);
-    } else if (message['type'] == "rssiValue") {
+    } else if (message['type'] == "rssiRead") {
       onRssiRead?.call(message['deviceId'], message["rssi"]);
     }
 

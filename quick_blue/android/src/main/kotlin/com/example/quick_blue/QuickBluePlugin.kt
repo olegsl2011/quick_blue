@@ -265,15 +265,13 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
 
   override fun onReadRemoteRssi(gatt : BluetoothGatt, rssi : Int, status : Int){
     if (status == BluetoothGatt.GATT_SUCCESS) {
-      Log.d(TAG, String.format("BluetoothGatt ReadRssi[%d]", rssi));
-    }
     sendMessage(messageConnector, mapOf(
       "type" to "rssiRead",
       "deviceId" to gatt.device.address,
-      "type" to "rssiValue",
       "rssi" to rssi,
       "statis" to status
     ))
+    }
   }
 
     override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {

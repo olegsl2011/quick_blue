@@ -31,10 +31,11 @@ enum BleEvent {
   scanFailed,
   scanResult,
   connectionUpdate,
+  unkown,
   ;
 
-  static BleEvent parse(String string) =>
-      BleEvent.values.firstWhere((e) => e.name == string);
+  static BleEvent parse(String string) => BleEvent.values
+      .firstWhere((e) => e.name == string, orElse: () => BleEvent.unkown);
 
   BleEventMessage package(EventDataMap data) {
     try {
@@ -119,6 +120,11 @@ class ConnectionChangeEvent extends DeviceBoundEventData {
   ConnectionChangeEvent({required super.deviceId, this.latency});
 
   BlePackageLatency? latency;
+
+  @override
+  String toString() {
+    return "device: ${deviceId}";
+  }
 }
 
 class CharacteristicWriteEvent extends DeviceBoundEventData {
@@ -139,4 +145,11 @@ class ServiceDiscoveredData extends DeviceBoundEventData {
 
   String service;
   List<String> characteristics;
+
+  @override
+  String toString() {
+    return """service: ${service},
+    ${characteristics.join("\n")}
+""";
+  }
 }
