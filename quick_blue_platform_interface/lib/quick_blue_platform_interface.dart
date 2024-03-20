@@ -44,7 +44,7 @@ abstract class QuickBluePlatform extends PlatformInterface {
 
   void reinit();
 
-  void startScan();
+  void startScan({String? serviceId});
 
   void stopScan();
 

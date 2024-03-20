@@ -36,10 +36,10 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
   }
 
   @override
-  Future<void> startScan() {
-    return _method
-        .invokeMethod('startScan')
-        .then((_) => print('startScan invokeMethod success'));
+  Future<void> startScan({String? serviceId}) {
+    return _method.invokeMethod('startScan', {
+      'serviceId': serviceId,
+    }).then((_) => _log('startScan invokeMethod success'));
   }
 
   @override

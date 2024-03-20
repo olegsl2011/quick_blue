@@ -46,7 +46,8 @@ class QuickBlue {
 
   static reinit() => _platform.reinit();
 
-  static void startScan() => _platform.startScan();
+  static void startScan({String? serviceId}) =>
+      _platform.startScan(serviceId: serviceId);
 
   static void stopScan() => _platform.stopScan();
 
