@@ -3,11 +3,14 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:quick_blue_linux/quick_blue_linux.dart';
+import 'package:quick_blue_platform_interface/ble_events.dart';
 import 'package:quick_blue_platform_interface/quick_blue_platform_interface.dart';
 
 import 'models.dart';
 
 export 'package:quick_blue_platform_interface/models.dart';
+
+export 'package:quick_blue_platform_interface/ble_events.dart';
 
 export 'models.dart';
 
@@ -43,12 +46,15 @@ class QuickBlue {
 
   static reinit() => _platform.reinit();
 
-  static void startScan() => _platform.startScan();
+  static void startScan({String? serviceId}) =>
+      _platform.startScan(serviceId: serviceId);
 
   static void stopScan() => _platform.stopScan();
 
   static Stream<BlueScanResult> get scanResultStream =>
       _platform.scanResultStream.map((item) => BlueScanResult.fromMap(item));
+
+  static Stream<BleEventMessage> get eventStream => _platform.bleEventStream;
 
   static Future<void> connect(String deviceId, {bool? auto}) {
     return _platform.connect(deviceId, auto: auto);

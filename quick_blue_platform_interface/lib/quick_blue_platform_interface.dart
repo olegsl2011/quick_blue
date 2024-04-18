@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:quick_blue_platform_interface/ble_events.dart';
 
 import 'models.dart';
 
@@ -43,7 +44,7 @@ abstract class QuickBluePlatform extends PlatformInterface {
 
   void reinit();
 
-  void startScan();
+  void startScan({String? serviceId});
 
   void stopScan();
 
@@ -62,6 +63,8 @@ abstract class QuickBluePlatform extends PlatformInterface {
   OnServiceDiscovered? onServiceDiscovered;
 
   OnRssiRead? onRssiRead;
+
+  Stream<BleEventMessage> get bleEventStream;
 
   Future<void> setNotifiable(String deviceId, String service,
       String characteristic, BleInputProperty bleInputProperty);

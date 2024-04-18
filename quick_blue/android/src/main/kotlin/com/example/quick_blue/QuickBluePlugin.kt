@@ -3,11 +3,14 @@ package com.example.quick_blue
 import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi;
@@ -74,7 +77,16 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
         result.success(bluetoothManager.adapter.isEnabled)
       }
       "startScan" -> {
-        bluetoothManager.adapter.bluetoothLeScanner?.startScan(scanCallback)
+        var filterBuilder = ScanFilter.Builder();
+        var settingsBuilder = ScanSettings.Builder();
+        val serviceUUID = ParcelUuid.fromString(call.argument<String>("serviceId")!!);
+        filterBuilder.setServiceUuid(serviceUUID);
+        var filter = filterBuilder.build();
+        var settings = settingsBuilder.build();
+        bluetoothManager.adapter.bluetoothLeScanner?.startScan(
+          listOf(filter),
+          settings,
+          scanCallback)
         result.success(null)
       }
       "stopScan" -> {
@@ -207,10 +219,15 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
   private val scanCallback = object : ScanCallback() {
     override fun onScanFailed(errorCode: Int) {
       Log.v(TAG, "onScanFailed: $errorCode")
+        sendMessage(messageConnector, mapOf(
+          "type" to "scanFailed",
+          "errorCode" to errorCode,
+        ))
     }
 
     override fun onScanResult(callbackType: Int, result: ScanResult) {
       scanResultSink?.success(mapOf<String, Any>(
+              "type" to "scanResult",
               "name" to (result.device.name ?: ""),
               "deviceId" to result.device.address,
               "manufacturerDataHead" to (result.manufacturerDataHead ?: byteArrayOf()),
@@ -244,12 +261,14 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
       Log.v(TAG, "onConnectionStateChange: device(${gatt.device.address}) status($status), newState($newState)")
       if (newState == BluetoothGatt.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
         sendMessage(messageConnector, mapOf(
+          "type" to "connected",
           "deviceId" to gatt.device.address,
           "ConnectionState" to "connected"
         ))
       } else {
         cleanConnection(gatt)
         sendMessage(messageConnector, mapOf(
+          "type" to "disconnected",
           "deviceId" to gatt.device.address,
           "ConnectionState" to "disconnected"
         ))
@@ -258,14 +277,13 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
 
   override fun onReadRemoteRssi(gatt : BluetoothGatt, rssi : Int, status : Int){
     if (status == BluetoothGatt.GATT_SUCCESS) {
-      Log.d(TAG, String.format("BluetoothGatt ReadRssi[%d]", rssi));
-    }
     sendMessage(messageConnector, mapOf(
+      "type" to "rssiRead",
       "deviceId" to gatt.device.address,
-      "type" to "rssiValue",
       "rssi" to rssi,
       "statis" to status
     ))
+    }
   }
 
     override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
@@ -282,6 +300,7 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
         }
 
         sendMessage(messageConnector, mapOf(
+        "type" to "serviceDiscovered",
           "deviceId" to gatt.device.address,
           "ServiceState" to "discovered",
           "service" to service.uuid.toString(),
@@ -290,26 +309,12 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
       }
     }
 
-    /*
-     * This override could potentially solve a bug where connect is called when the connection is already established
-     * but not detected by the app.
-	  @RequiresApi(value = Build.VERSION_CODES.O)
-    override fun onConnectionUpdated(gatt: BluetoothGatt?, interval: Int, latency: Int, timeout: Int, status: Int) {
-      Log.v(TAG, "onConnectionUpdated ${gatt!.device.address}, interval=$interval latency=$latency status=$status")
-      if (status == BluetoothGatt.GATT_SUCCESS) {
-        sendMessage(messageConnector, mapOf(
-          "deviceId" to gatt!.device!.address,
-          "ConnectionState" to "connected"
-        ))
-      }
-
-    }
-    */
-
     override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
       if (status == BluetoothGatt.GATT_SUCCESS) {
         sendMessage(messageConnector, mapOf(
-          "mtuConfig" to mtu
+          "type" to "mtuChanged",
+          "mtuConfig" to mtu,
+          "status" to status,
         ))
       }
     }
@@ -317,6 +322,7 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
     override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
       Log.v(TAG, "onCharacteristicRead ${characteristic.uuid}, ${characteristic.value.contentToString()}")
       sendMessage(messageConnector, mapOf(
+        "type" to "characteristicRead",
         "deviceId" to gatt.device.address,
         "characteristicValue" to mapOf(
           "characteristic" to characteristic.uuid.toString(),
@@ -327,10 +333,17 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
 
     override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic, status: Int) {
       Log.v(TAG, "onCharacteristicWrite ${characteristic.uuid}, ${characteristic.value.contentToString()} $status")
+      sendMessage(messageConnector, mapOf(
+        "type" to "characteristicWrite",
+        "deviceId" to gatt?.device?.address.toString(),
+        "characteristic" to characteristic.getUuid().toString(),
+        "status" to status
+      ))
     }
 
     override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
       sendMessage(messageConnector, mapOf(
+        "type" to "characteristicChanged",
         "deviceId" to gatt.device.address,
         "characteristicValue" to mapOf(
           "characteristic" to characteristic.uuid.toString(),

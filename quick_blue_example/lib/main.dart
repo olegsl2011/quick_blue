@@ -10,6 +10,7 @@ void main() {
   Logger.root.onRecord.listen((r) {
     print(r.loggerName + ' ' + r.level.name + ' ' + r.message);
   });
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
 

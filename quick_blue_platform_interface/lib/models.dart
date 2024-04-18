@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:equatable/equatable.dart';
 
 class BlueConnectionState extends Equatable {
@@ -48,9 +50,27 @@ enum BlePackageLatency {
   medium,
   high;
 
-  int get value => switch (this) {
-        BlePackageLatency.low => 0,
-        BlePackageLatency.medium => 1,
-        BlePackageLatency.high => 2
-      };
+  int get value => Platform.isAndroid
+      ? switch (this) {
+          BlePackageLatency.low => 1,
+          BlePackageLatency.medium => 0,
+          BlePackageLatency.high => 2
+        }
+      : switch (this) {
+          BlePackageLatency.low => 0,
+          BlePackageLatency.medium => 1,
+          BlePackageLatency.high => 2
+        };
+
+  /// parses the interval in ms that is from
+  /// android gatt onConnectionUpdated callback
+  static fromInterval(int value) {
+    if (value < 20) {
+      return BlePackageLatency.low;
+    } else if (value < 50) {
+      return BlePackageLatency.medium;
+    } else {
+      return BlePackageLatency.high;
+    }
+  }
 }

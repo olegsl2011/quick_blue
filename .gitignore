@@ -5,3 +5,5 @@ pubspec.lock
 
 #macOS related
 .DS_Store
+
+**/pubspec_overrides.yaml

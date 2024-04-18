@@ -67,7 +67,13 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
 	  case "isBluetoothAvailable":
 		  result(manager.state == .poweredOn)
 	  case "startScan":
-		  manager.scanForPeripherals(withServices: nil)
+          let arguments = call.arguments as! Dictionary<String, Any>
+          if let serviceId = arguments["serviceId"] as? String {
+              manager.scanForPeripherals(withServices: [CBUUID(string: serviceId)])
+          } else {
+              manager.scanForPeripherals(withServices: nil)
+          }
+          
 		  result(nil)
 	  case "stopScan":
 		  manager.stopScan()
@@ -124,7 +130,9 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
 		  result(nil)
 		  let mtu = peripheral.maximumWriteValueLength(for: .withoutResponse)
 		  print("peripheral.maximumWriteValueLengthForType:CBCharacteristicWriteWithoutResponse \(mtu)")
-		  messageConnector.sendMessage(["mtuConfig": mtu + GATT_HEADER_LENGTH])
+		  messageConnector.sendMessage([
+            "type": "mtuChanged",
+            "mtuConfig": mtu + GATT_HEADER_LENGTH])
       case "readRssi":
           let arguments = call.arguments as! Dictionary<String, Any>
           let deviceId = arguments["deviceId"] as! String
@@ -207,6 +215,7 @@ extension SwiftQuickBluePlugin: CBCentralManagerDelegate {
   public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
     print("centralManager:didConnect \(peripheral.uuid.uuidString)")
     messageConnector.sendMessage([
+      "type" : "connected",
       "deviceId": peripheral.uuid.uuidString,
       "ConnectionState": "connected",
     ])
@@ -215,6 +224,7 @@ extension SwiftQuickBluePlugin: CBCentralManagerDelegate {
   public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
     print("centralManager:didDisconnectPeripheral: \(peripheral.uuid.uuidString) error: \(error)")
     messageConnector.sendMessage([
+        "type" : "disconnected",
       "deviceId": peripheral.uuid.uuidString,
       "ConnectionState": "disconnected",
     ])
@@ -255,8 +265,8 @@ extension SwiftQuickBluePlugin: CBPeripheralDelegate {
     public func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: Error?) {
       print("peripheral:didReadRSSI (\(RSSI))")
       self.messageConnector.sendMessage([
+        "type" : "rssiRead",
         "deviceId": peripheral.uuid.uuidString,
-        "type": "rssiValue",
         "rssi": RSSI
       ])
     }
@@ -266,6 +276,7 @@ extension SwiftQuickBluePlugin: CBPeripheralDelegate {
       print("peripheral:didDiscoverCharacteristicsForService (\(service.uuid.uuidStr), \(characteristic.uuid.uuidStr)")
     }
     self.messageConnector.sendMessage([
+      "type" : "serviceDiscovered",
       "deviceId": peripheral.uuid.uuidString,
       "ServiceState": "discovered",
       "service": service.uuid.uuidStr,
@@ -275,11 +286,16 @@ extension SwiftQuickBluePlugin: CBPeripheralDelegate {
     
   public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
     print("peripheral:didWriteValueForCharacteristic \(characteristic.uuid.uuidStr) \(characteristic.value as? NSData) error: \(error)")
+    self.messageConnector.sendMessage([
+    "type" : "characteristicWrite",
+    "characteristic" : characteristic.uuid.uuidStr
+    ])
   }
     
   public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
     // print("peripheral:didUpdateValueForForCharacteristic \(characteristic.uuid) \(characteristic.value as! NSData) error: \(error)")
     self.messageConnector.sendMessage([
+      "type" : "characteristicRead",
       "deviceId": peripheral.uuid.uuidString,
       "characteristicValue": [
         "characteristic": characteristic.uuid.uuidStr,
