@@ -73,6 +73,7 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
             "found": peripherals.count])
 
     for peripheral in peripherals {
+      NSLog("peripheral: \(peripheral.name) \(peripheral.uuid.uuidString)");
       discoveredPeripherals[peripheral.uuid.uuidString] = peripheral
     }
   }
@@ -82,6 +83,7 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
         repopulateDiscoveredPeripherals();
       }
 		  guard let peripheral = discoveredPeripherals[deviceId] else {
+        NSLog("failed to find id");
 			  result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
 			  return nil;
 		  }       
@@ -120,7 +122,7 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
         messageConnector.sendMessage([
           "type" : "disconnecting",
           "deviceId": deviceId,
-          "ConnectionState": "failure",
+          "error": "failed to disconnect",
         ])
         return;
       }
