@@ -39,6 +39,8 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
   Future<void> startScan({String? serviceId}) {
     return _method.invokeMethod('startScan', {
       'serviceId': serviceId,
+    }).onError((error, stackTrace) {
+      _log('stopScan invocation failed with $error');
     }).then((_) => _log('startScan invokeMethod success'));
   }
 
@@ -115,6 +117,8 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
       _mtuConfigController.add(message['mtuConfig']);
     } else if (message['type'] == "rssiRead") {
       onRssiRead?.call(message['deviceId'], message["rssi"]);
+    } else if (message['type'] == "repopulatePeripherals") {
+        print(message);
     }
 
     _eventMessageController

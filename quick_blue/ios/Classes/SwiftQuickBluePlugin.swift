@@ -61,6 +61,32 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
     manager = CBCentralManager(delegate: self, queue: nil)
     discoveredPeripherals = Dictionary()
   }
+  
+  /// sometimes - especially in release mode - the [discoveredPeripherals] is empty
+  /// It can be refilled with the connected peripherals
+  func repopulateDiscoveredPeripherals() {
+    /// https://github.com/boskokg/flutter_blue_plus/blob/master/ios/Classes/FlutterBluePlusPlugin.m#L297
+    let peripherals = manager.retrieveConnectedPeripherals(withServices: [CBUUID(string: "1800")])
+
+		  messageConnector.sendMessage([
+            "type": "repopulatePeripherals",
+            "found": peripherals.count])
+
+    for peripheral in peripherals {
+      discoveredPeripherals[peripheral.uuid.uuidString] = peripheral
+    }
+  }
+  
+  func getPeripheralById(_ deviceId : String, _ result:  @escaping FlutterResult) -> CBPeripheral? {
+      if discoveredPeripherals.isEmpty {
+        repopulateDiscoveredPeripherals();
+      }
+		  guard let peripheral = discoveredPeripherals[deviceId] else {
+			  result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
+			  return nil;
+		  }       
+      return peripheral;
+  }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
 	  switch call.method {
@@ -81,20 +107,28 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
 	  case "connect":
 		  let arguments = call.arguments as! Dictionary<String, Any>
 		  let deviceId = arguments["deviceId"] as! String
-		  guard let peripheral = discoveredPeripherals[deviceId] else {
-			  result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
-			  return
-		  }
+      guard let peripheral = getPeripheralById(deviceId, result) else {
+        return;
+      }
 		  peripheral.delegate = self
 		  manager.connect(peripheral)
 		  result(nil)
 	  case "disconnect":
 		  let arguments = call.arguments as! Dictionary<String, Any>
 		  let deviceId = arguments["deviceId"] as! String
-		  guard let peripheral = discoveredPeripherals[deviceId] else {
-			  result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
-			  return
-		  }
+      guard let peripheral = getPeripheralById(deviceId, result) else {
+        messageConnector.sendMessage([
+          "type" : "disconnecting",
+          "deviceId": deviceId,
+          "ConnectionState": "failure",
+        ])
+        return;
+      }
+    messageConnector.sendMessage([
+      "type" : "disconnecting",
+      "deviceId": peripheral.uuid.uuidString,
+      "ConnectionState": "disconnecting",
+    ])
 		  if (peripheral.state != .disconnected) {
 			  manager.cancelPeripheralConnection(peripheral)
 		  }
@@ -102,10 +136,9 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
 	  case "discoverServices":
 		  let arguments = call.arguments as! Dictionary<String, Any>
 		  let deviceId = arguments["deviceId"] as! String
-		  guard let peripheral = discoveredPeripherals[deviceId] else {
-			  result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
-			  return
-		  }
+      guard let peripheral = getPeripheralById(deviceId, result) else {
+        return;
+      }
 		  peripheral.discoverServices(nil)
 		  result(nil)
 	  case "setNotifiable":
@@ -114,34 +147,33 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
 		  let service = arguments["service"] as! String
 		  let characteristic = arguments["characteristic"] as! String
 		  let bleInputProperty = arguments["bleInputProperty"] as! String
-		  guard let peripheral = discoveredPeripherals[deviceId] else {
-			  result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
-			  return
-		  }
+      guard let peripheral = getPeripheralById(deviceId, result) else {
+        return;
+      }
+
 		  peripheral.setNotifiable(bleInputProperty, for: characteristic, of: service)
 		  result(nil)
 	  case "requestMtu":
 		  let arguments = call.arguments as! Dictionary<String, Any>
 		  let deviceId = arguments["deviceId"] as! String
-		  guard let peripheral = discoveredPeripherals[deviceId] else {
-			  result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
-			  return
-		  }
+      guard let peripheral = getPeripheralById(deviceId, result) else {
+        return;
+      }
+
 		  result(nil)
 		  let mtu = peripheral.maximumWriteValueLength(for: .withoutResponse)
 		  print("peripheral.maximumWriteValueLengthForType:CBCharacteristicWriteWithoutResponse \(mtu)")
 		  messageConnector.sendMessage([
             "type": "mtuChanged",
             "mtuConfig": mtu + GATT_HEADER_LENGTH])
-      case "readRssi":
-          let arguments = call.arguments as! Dictionary<String, Any>
-          let deviceId = arguments["deviceId"] as! String
-          guard let peripheral = discoveredPeripherals[deviceId] else {
-              result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
-              return
-          }
-          peripheral.readRSSI()
-          result(nil)
+    case "readRssi":
+        let arguments = call.arguments as! Dictionary<String, Any>
+        let deviceId = arguments["deviceId"] as! String
+        guard let peripheral = getPeripheralById(deviceId, result) else {
+          return;
+        }
+        peripheral.readRSSI()
+        result(nil)
 	  case "requestLatency":
           return
 	  case "readValue":
@@ -149,10 +181,10 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
 		  let deviceId = arguments["deviceId"] as! String
 		  let service = arguments["service"] as! String
 		  let characteristic = arguments["characteristic"] as! String
-		  guard let peripheral = discoveredPeripherals[deviceId] else {
-			  result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
-			  return
-		  }
+
+      guard let peripheral = getPeripheralById(deviceId, result) else {
+        return;
+      }
 		  let char = peripheral.getCharacteristic(characteristic, of: service)
 		  if char != nil {
 			  peripheral.readValue(for: char!)
@@ -165,10 +197,9 @@ public class SwiftQuickBluePlugin: NSObject, FlutterPlugin {
 		  let characteristic = arguments["characteristic"] as! String
 		  let value = arguments["value"] as! FlutterStandardTypedData
 		  let bleOutputProperty = arguments["bleOutputProperty"] as! String
-		  guard let peripheral = discoveredPeripherals[deviceId] else {
-			  result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
-			  return
-		  }
+      guard let peripheral = getPeripheralById(deviceId, result) else {
+        return;
+      }
 		  let type = bleOutputProperty == "withoutResponse" ? CBCharacteristicWriteType.withoutResponse : CBCharacteristicWriteType.withResponse
 		  let char = peripheral.getCharacteristic(characteristic, of: service)
 		  if char != nil {
