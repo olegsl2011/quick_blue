@@ -34,8 +34,12 @@ class BlueScanResult {
   @override
   bool operator ==(Object other) =>
       other is BlueScanResult &&
+      this.manufacturerData == other.manufacturerData &&
       this.name == other.name &&
       this.deviceId == other.deviceId;
+
+  @override
+  String toString() => "BlueScanResult${toMap().toString()}";
 }
 
 int _xor(List<int> a) => a.reduce((a, b) => a ^ b);
